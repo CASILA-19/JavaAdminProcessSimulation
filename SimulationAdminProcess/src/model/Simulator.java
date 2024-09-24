@@ -15,7 +15,7 @@ public class Simulator {
     }
 
     public void addProcess(Process processTAdd) {
-
+        processes.add(processTAdd);
     }
 
     public String seleccionarAlgoritmo(int opcion) {
@@ -30,6 +30,8 @@ public class Simulator {
                 return simularPrioridad();
             case 5:
                 return simularRoundRobin();
+            case 6:
+                return "Hasta pronto";
             default:
                 return "Algoritmo no válido.";
         }
