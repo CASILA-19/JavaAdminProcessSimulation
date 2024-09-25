@@ -18,7 +18,7 @@ public class Simulator {
         processes.add(processTAdd);
     }
 
-    public String seleccionarAlgoritmo(int opcion) {
+    public String seleccionarAlgoritmo(int opcion, int quantum) {
         switch (opcion) {
             case 1:
                 return simularFCFS();
@@ -29,7 +29,7 @@ public class Simulator {
             case 4:
                 return simularPrioridad();
             case 5:
-                return simularRoundRobin();
+                return simularRoundRobin(quantum);
             case 6:
                 return "Hasta pronto";
             default:
@@ -140,7 +140,6 @@ public class Simulator {
         int procesosCompletados = 0;
         Process procesoEnEjecucion = null;
 
-        ArrayList<Process> procesosListos = new ArrayList<>(processes);
         ArrayList<Process> procesosPendientes = new ArrayList<>(processes);
 
         while (procesosCompletados < processes.size()) {
@@ -157,14 +156,16 @@ public class Simulator {
                         .min(Comparator.comparingInt(Process::getTicksCPU))
                         .orElseThrow();
 
-                // Si hay un proceso en ejecución y el nuevo proceso tiene menor tiempo de CPU restante, se expropia
-                if (procesoEnEjecucion == null || procesoSeleccionado.getTicksCPU() < procesoEnEjecucion.getTicksCPU()) {
+                // Si hay un proceso en ejecución y el nuevo proceso tiene menor tiempo de CPU
+                // restante, se expropia
+                if (procesoEnEjecucion == null
+                        || procesoSeleccionado.getTicksCPU() < procesoEnEjecucion.getTicksCPU()) {
                     procesoEnEjecucion = procesoSeleccionado;
                 }
 
                 // Ejecución del proceso seleccionado
-                procesoEnEjecucion.setTicksCPU(procesoEnEjecucion.getTicksCPU() - 1);  // Reducir tiempo de CPU restante
-                tiempoActual++;  // Avanzar el tiempo
+                procesoEnEjecucion.setTicksCPU(procesoEnEjecucion.getTicksCPU() - 1); // Reducir tiempo de CPU restante
+                tiempoActual++; // Avanzar el tiempo
 
                 // Si el proceso finaliza, se registra su tiempo de respuesta y espera
                 if (procesoEnEjecucion.getTicksCPU() == 0) {
@@ -180,11 +181,11 @@ public class Simulator {
                             ", E (Tiempo de Espera): " + tiempoEspera + "\n";
 
                     procesosCompletados++;
-                    procesosPendientes.remove(procesoEnEjecucion);  // El proceso ha terminado
-                    procesoEnEjecucion = null;  // Reiniciar el proceso en ejecución
+                    procesosPendientes.remove(procesoEnEjecucion); // El proceso ha terminado
+                    procesoEnEjecucion = null; // Reiniciar el proceso en ejecución
                 }
             } else {
-                tiempoActual++;  // Avanzar el tiempo si no hay procesos listos
+                tiempoActual++; // Avanzar el tiempo si no hay procesos listos
             }
         }
 
@@ -248,90 +249,90 @@ public class Simulator {
         return result;
     }
 
-    private String simularRoundRobin() {
-        String result = "Simulación Round Robin\n";
+    private String simularRoundRobin(int quantum) {
+    String result = "Simulación Round Robin\n";
 
-        // int quantum = (int) (0.8 * calcularPromedioTicksCPU());
-        int quantum = 3;
-        int tiempoActual = 0;
-        int sumaTiempoRespuesta = 0;
-        int sumaTiempoEspera = 0;
+    int tiempoActual = 0;
+    int sumaTiempoRespuesta = 0;
+    int sumaTiempoEspera = 0;
 
-        Queue<Process> cola = new LinkedList<>();
-        Map<Process, Integer> tiemposRestantes = new HashMap<>();
-        ArrayList<Process> procesosPendientes = new ArrayList<>(processes);
+    Queue<Process> cola = new LinkedList<>();
+    Map<Process, Integer> tiemposRestantes = new HashMap<>();
+    ArrayList<Process> procesosPendientes = new ArrayList<>(processes);
 
-        for (Process p : processes) {
-            tiemposRestantes.put(p, p.getTicksCPU());
-        }
-
-        ArrayList<Process> procesosEjecutados = new ArrayList<>();
-        Map<Process, Integer> tiempoLlegadaEfectivo = new HashMap<>();
-        Map<Process, Integer> tiemposDeInicio = new HashMap<>();
-        Map<Process, Integer> tiemposDeEspera = new HashMap<>();
-
-        for (Process p : processes) {
-            tiemposDeEspera.put(p, 0);
-        }
-
-        while (procesosEjecutados.size() < processes.size()) {
-            for (Process p : procesosPendientes) {
-                if (p.getArriveTime() <= tiempoActual && !cola.contains(p) && !procesosEjecutados.contains(p)) {
-                    cola.add(p);
-                    tiempoLlegadaEfectivo.put(p, tiempoActual); // El momento en que realmente entra a la cola
-                }
-            }
-
-            if (cola.isEmpty()) {
-                tiempoActual++;
-                continue;
-            }
-
-            Process proceso = cola.poll();
-            int tiempoRestante = tiemposRestantes.get(proceso);
-
-            int tiempoInicio = tiempoActual;
-
-            int tiempoEjecucion = Math.min(quantum, tiempoRestante);
-            tiempoRestante -= tiempoEjecucion;
-            tiempoActual += tiempoEjecucion;
-
-            int tiempoFin = tiempoActual;
-
-            if (!tiemposDeInicio.containsKey(proceso)) {
-                tiemposDeInicio.put(proceso, tiempoInicio);
-            } else {
-                int tiempoEspera = tiempoInicio - tiempoFin + tiempoEjecucion;
-                tiemposDeEspera.put(proceso, tiemposDeEspera.get(proceso) + tiempoEspera);
-            }
-
-            if (tiempoRestante == 0) {
-                int tiempoRespuesta = tiempoActual - proceso.getArriveTime();
-                int tiempoEspera = tiempoRespuesta - proceso.getTicksCPU();
-
-                sumaTiempoRespuesta += tiempoRespuesta;
-                sumaTiempoEspera += tiempoEspera;
-
-                procesosEjecutados.add(proceso);
-                result += proceso.getName() + " - Inicio: " + tiemposDeInicio.get(proceso) + ", Fin: " + tiempoFin +
-                        ", Tiempo de Respuesta: " + tiempoRespuesta + ", Tiempo de Espera: " + tiempoEspera + "\n";
-            } else {
-                tiemposRestantes.put(proceso, tiempoRestante);
-                cola.add(proceso);
-                result += proceso.getName() + " - Inicio: " + tiempoInicio + ", Fin: " + tiempoFin +
-                        ", Tiempo restante: " + tiempoRestante + "\n";
-            }
-        }
-
-        double tiempoPromedioRespuesta = (double) sumaTiempoRespuesta / processes.size();
-        double tiempoPromedioEspera = (double) sumaTiempoEspera / processes.size();
-
-        result += "Tiempo promedio de respuesta: " + tiempoPromedioRespuesta + "\n";
-        result += "Tiempo promedio de espera: " + tiempoPromedioEspera;
-        return result;
+    for (Process p : processes) {
+    tiemposRestantes.put(p, p.getTicksCPU());
     }
 
-    private double calcularPromedioTicksCPU() {
-        return processes.stream().mapToInt(Process::getTicksCPU).average().orElse(0);
+    ArrayList<Process> procesosEjecutados = new ArrayList<>();
+    Map<Process, Integer> tiempoLlegadaEfectivo = new HashMap<>();
+    Map<Process, Integer> tiemposDeInicio = new HashMap<>();
+    Map<Process, Integer> tiemposDeEspera = new HashMap<>();
+
+    for (Process p : processes) {
+    tiemposDeEspera.put(p, 0);
     }
+
+    while (procesosEjecutados.size() < processes.size()) {
+    for (Process p : procesosPendientes) {
+    if (p.getArriveTime() <= tiempoActual && !cola.contains(p) &&
+    !procesosEjecutados.contains(p)) {
+    cola.add(p);
+    tiempoLlegadaEfectivo.put(p, tiempoActual); // El momento en que realmente entra a la cola
+    }
+    }
+
+    if (cola.isEmpty()) {
+    tiempoActual++;
+    continue;
+    }
+
+    Process proceso = cola.poll();
+    int tiempoRestante = tiemposRestantes.get(proceso);
+
+    int tiempoInicio = tiempoActual;
+
+    int tiempoEjecucion = Math.min(quantum, tiempoRestante);
+    tiempoRestante -= tiempoEjecucion;
+    tiempoActual += tiempoEjecucion;
+
+    int tiempoFin = tiempoActual;
+
+    if (!tiemposDeInicio.containsKey(proceso)) {
+    tiemposDeInicio.put(proceso, tiempoInicio);
+    } else {
+    int tiempoEspera = tiempoInicio - tiempoFin + tiempoEjecucion;
+    tiemposDeEspera.put(proceso, tiemposDeEspera.get(proceso) + tiempoEspera);
+    }
+
+    if (tiempoRestante == 0) {
+    int tiempoRespuesta = tiempoActual - proceso.getArriveTime();
+    int tiempoEspera = tiempoRespuesta - proceso.getTicksCPU();
+
+    sumaTiempoRespuesta += tiempoRespuesta;
+    sumaTiempoEspera += tiempoEspera;
+
+    procesosEjecutados.add(proceso);
+    result += proceso.getName() + " - Inicio: " + tiemposDeInicio.get(proceso) +
+    ", Fin: " + tiempoFin +
+    ", Tiempo de Respuesta: " + tiempoRespuesta + ", Tiempo de Espera: " +
+    tiempoEspera + "\n";
+    } else {
+    tiemposRestantes.put(proceso, tiempoRestante);
+    cola.add(proceso);
+    result += proceso.getName() + " - Inicio: " + tiempoInicio + ", Fin: " +
+    tiempoFin +
+    ", Tiempo restante: " + tiempoRestante + "\n";
+    }
+    }
+
+    double tiempoPromedioRespuesta = (double) sumaTiempoRespuesta /
+    processes.size();
+    double tiempoPromedioEspera = (double) sumaTiempoEspera / processes.size();
+
+    result += "Tiempo promedio de respuesta: " + tiempoPromedioRespuesta + "\n";
+    result += "Tiempo promedio de espera: " + tiempoPromedioEspera;
+    return result;
+    }
+
 }

@@ -37,10 +37,12 @@ public class controller {
         boolean aux = true;
         while (aux) {
             int option = vConsole.readInt(menu);
-            vConsole.showMessage(sim.seleccionarAlgoritmo(option));
-            if (option == 6) {
+            int quantum = 0;
+            if (option == 5)
+                quantum = vConsole.readInt("Ingrese un valor para el quantum");
+            vConsole.showMessage(sim.seleccionarAlgoritmo(option, quantum));
+            if (option == 6)
                 aux = false;
-            }
         }
     }
 
