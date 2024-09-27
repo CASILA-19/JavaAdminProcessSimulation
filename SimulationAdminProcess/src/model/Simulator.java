@@ -2,10 +2,6 @@ package model;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
 
 public class Simulator {
     private ArrayList<Process> processes;
