@@ -249,90 +249,27 @@ public class Simulator {
         return result;
     }
 
-    private String simularRoundRobin(int quantum) {
-    String result = "Simulación Round Robin\n";
-
-    int tiempoActual = 0;
-    int sumaTiempoRespuesta = 0;
-    int sumaTiempoEspera = 0;
-
-    Queue<Process> cola = new LinkedList<>();
-    Map<Process, Integer> tiemposRestantes = new HashMap<>();
-    ArrayList<Process> procesosPendientes = new ArrayList<>(processes);
-
-    for (Process p : processes) {
-    tiemposRestantes.put(p, p.getTicksCPU());
-    }
-
-    ArrayList<Process> procesosEjecutados = new ArrayList<>();
-    Map<Process, Integer> tiempoLlegadaEfectivo = new HashMap<>();
-    Map<Process, Integer> tiemposDeInicio = new HashMap<>();
-    Map<Process, Integer> tiemposDeEspera = new HashMap<>();
-
-    for (Process p : processes) {
-    tiemposDeEspera.put(p, 0);
-    }
-
-    while (procesosEjecutados.size() < processes.size()) {
-    for (Process p : procesosPendientes) {
-    if (p.getArriveTime() <= tiempoActual && !cola.contains(p) &&
-    !procesosEjecutados.contains(p)) {
-    cola.add(p);
-    tiempoLlegadaEfectivo.put(p, tiempoActual); // El momento en que realmente entra a la cola
-    }
-    }
-
-    if (cola.isEmpty()) {
-    tiempoActual++;
-    continue;
-    }
-
-    Process proceso = cola.poll();
-    int tiempoRestante = tiemposRestantes.get(proceso);
-
-    int tiempoInicio = tiempoActual;
-
-    int tiempoEjecucion = Math.min(quantum, tiempoRestante);
-    tiempoRestante -= tiempoEjecucion;
-    tiempoActual += tiempoEjecucion;
-
-    int tiempoFin = tiempoActual;
-
-    if (!tiemposDeInicio.containsKey(proceso)) {
-    tiemposDeInicio.put(proceso, tiempoInicio);
-    } else {
-    int tiempoEspera = tiempoInicio - tiempoFin + tiempoEjecucion;
-    tiemposDeEspera.put(proceso, tiemposDeEspera.get(proceso) + tiempoEspera);
-    }
-
-    if (tiempoRestante == 0) {
-    int tiempoRespuesta = tiempoActual - proceso.getArriveTime();
-    int tiempoEspera = tiempoRespuesta - proceso.getTicksCPU();
-
-    sumaTiempoRespuesta += tiempoRespuesta;
-    sumaTiempoEspera += tiempoEspera;
-
-    procesosEjecutados.add(proceso);
-    result += proceso.getName() + " - Inicio: " + tiemposDeInicio.get(proceso) +
-    ", Fin: " + tiempoFin +
-    ", Tiempo de Respuesta: " + tiempoRespuesta + ", Tiempo de Espera: " +
-    tiempoEspera + "\n";
-    } else {
-    tiemposRestantes.put(proceso, tiempoRestante);
-    cola.add(proceso);
-    result += proceso.getName() + " - Inicio: " + tiempoInicio + ", Fin: " +
-    tiempoFin +
-    ", Tiempo restante: " + tiempoRestante + "\n";
-    }
-    }
-
-    double tiempoPromedioRespuesta = (double) sumaTiempoRespuesta /
-    processes.size();
-    double tiempoPromedioEspera = (double) sumaTiempoEspera / processes.size();
-
-    result += "Tiempo promedio de respuesta: " + tiempoPromedioRespuesta + "\n";
-    result += "Tiempo promedio de espera: " + tiempoPromedioEspera;
-    return result;
+    public String simularRoundRobin(int quantum) {
+        String result = "";
+        int tiempoActual = 0;
+        boolean procesoTerminado = false;
+        while (!procesoTerminado) {
+            procesoTerminado = true;
+            for (Process proceso : processes) {
+                if (proceso.getTicksCPU() > 0) {
+                    procesoTerminado = false;
+                    if (proceso.getArriveTime() <= tiempoActual) {
+                        int tiempoEjecucion = Math.min(quantum, proceso.getTicksCPU());
+                        proceso.setTicksCPU(proceso.getTicksCPU() - tiempoEjecucion);
+                        tiempoActual += tiempoEjecucion;
+                        result += "Proceso " + proceso.getName() + " ejecutado durante " + tiempoEjecucion
+                                + " unidades de tiempo. Tiempo restante: " + proceso.getTicksCPU() + "\n";
+                    }
+                }
+            }
+            tiempoActual++;
+        }
+        return result;
     }
 
 }
